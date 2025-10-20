@@ -1,243 +1,370 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Help Tyler Mooney</title>
+    <title>Help Tyler Mooney - Final Audio Fix</title>
+    <!-- 
+      Note: The Tailwind CDN is used here for demonstration purposes. 
+      For production, installing Tailwind as a PostCSS plugin is recommended.
+    -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Using the unpkg link for Tone.js for better reliability -->
+    <script src="https://unpkg.com/tone"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap" rel="stylesheet" />
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #eef2f7; /* A light grey-blue background */
-      }
-      .cta-button {
-        transition: all 0.2s ease;
-      }
-      .cta-button:hover {
-        transform: scale(1.05);
-      }
-      .content-box {
-        background-color: #ffffff;
-        border: 1px solid #d1d5db;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-          0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eef2f7;
+        }
+        .cta-button { transition: all 0.2s ease; }
+        .cta-button:hover { transform: scale(1.05); }
+        .content-box {
+            background-color: #ffffff;
+            border: 1px solid #d1d5db;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* --- Dynamic Background Effect --- */
+        #hero-section.dynamic-bg {
+            animation: bg-strobe 0.2s linear infinite;
+        }
+        @keyframes bg-strobe {
+            0% { background-color: #ef4444; }
+            25% { background-color: #3b82f6; }
+            50% { background-color: #22c55e; }
+            75% { background-color: #eab308; }
+            100% { background-color: #8b5cf6; }
+        }
+
+        /* --- ALL MLG & Effects Styles --- */
+        #mlg-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 9999; pointer-events: none; overflow: hidden;
+        }
+        .mlg-element, .mlg-icon, .mlg-gif {
+            position: absolute; display: none; will-change: transform, opacity;
+        }
+        .mlg-element {
+            color: white; font-weight: bold; font-size: 2.5rem;
+            text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        .mlg-icon, .mlg-gif { width: 150px; height: 150px; object-fit: contain; }
+        .mlg-element.active, .mlg-icon.active, .mlg-gif.active {
+            display: block; animation: mlg-animation 1.2s ease-out forwards;
+        }
+        @keyframes mlg-animation {
+            0% { transform: translate(var(--x-start), var(--y-start)) scale(0.2) rotate(0deg); opacity: 1; }
+            70% { transform: translate(var(--x-end), var(--y-end)) scale(1.3) rotate(var(--random-rotate-end)); opacity: 1; }
+            100% { transform: translate(var(--x-end), var(--y-end)) scale(0.1) rotate(0deg); opacity: 0; }
+        }
+
+        .screen-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+          10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); }
+          30%, 50%, 70% { transform: translate3d(-6px, 0, 0); } 40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+        #flash-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: white; opacity: 0; pointer-events: none;
+            z-index: 9998; transition: opacity 0.5s ease-out;
+        }
+        #flash-overlay.flash { opacity: 0.7; }
+
+        .counter-pop { animation: pop 0.3s ease-out; }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.6); } 100% { transform: scale(1); } }
+        
+        #combo-meter {
+            position: fixed; bottom: 20px; left: 50%; background-color: rgba(0, 0, 0, 0.7);
+            color: white; padding: 10px 20px; border-radius: 10px; font-size: 1.5rem;
+            font-weight: bold; z-index: 10000; opacity: 0;
+            transition: all 0.3s ease-in-out; transform: translateX(-50%) scale(0.8); pointer-events: none;
+        }
+        #combo-meter.visible { opacity: 1; transform: translateX(-50%) scale(1) translateY(-20px); }
+        #combo-meter.milestone {
+            animation: combo-milestone 0.5s ease-out; background-color: #ffc300; color: black;
+        }
+        @keyframes combo-milestone {
+            0% { transform: translateX(-50%) scale(1.2) translateY(-20px); }
+            50% { transform: translateX(-50%) scale(0.9) translateY(-20px); }
+            100% { transform: translateX(-50%) scale(1) translateY(-20px); }
+        }
+
+        #hitmarker {
+            position: fixed; width: 50px; height: 50px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M45 0 V45 H0 V55 H45 V100 H55 V55 H100 V45 H55 V0 Z" fill="white" stroke="black" stroke-width="10"/></svg>');
+            background-size: contain; pointer-events: none; z-index: 10001;
+            opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(45deg);
+            transition: all 0.3s ease-out;
+        }
+        #hitmarker.active { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+
+        #toast-container {
+            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center;
+            gap: 10px; z-index: 10002; pointer-events: none;
+        }
+        .achievement-toast {
+            background-color: #1a202c; color: #f0c43c; border: 2px solid #f0c43c;
+            padding: 12px 24px; border-radius: 8px; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            animation: slide-in-out 3.5s ease-in-out forwards;
+        }
+        @keyframes slide-in-out {
+            0% { opacity: 0; transform: translateY(30px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
     </style>
-  </head>
-  <body class="text-gray-900">
-    <!-- Header -->
+</head>
+<body class="text-gray-900">
     <header class="bg-white shadow-md sticky top-0 z-50">
       <nav class="container mx-auto px-6 py-4">
         <div class="flex items-center justify-center">
-          <h1 class="text-3xl font-bold text-gray-800">
-            Help Our Friend Tyler Mooney
-          </h1>
+          <h1 class="text-3xl font-bold text-gray-800">Help Our Friend Tyler Mooney</h1>
         </div>
       </nav>
     </header>
 
-    <!-- Main Content -->
     <main>
-      <!-- Hero Section -->
-      <section class="bg-white py-12 md:py-20">
+      <section id="hero-section" class="bg-white py-12 md:py-20 transition-colors duration-100">
         <div class="container mx-auto px-6 text-center">
-          <img
-            src="https://connect-assets.prosple.com/cdn/ff/PrmNlgGN3MeDZNo82mLsqfonZq8ELEpbORg37_p1fwM/1689279473/public/styles/scale_and_crop_center_80x80/public/2023-07/graduate-profile-ashurst-tyler-mooney-450x450-2023.jpg?itok=5K_Omgho"
+          <img src="https://connect-assets.prosple.com/cdn/ff/PrmNlgGN3MeDZNo82mLsqfonZq8ELEpbORg37_p1fwM/1689279473/public/styles/scale_and_crop_center_80x80/public/2023-07/graduate-profile-ashurst-tyler-mooney-450x450-2023.jpg?itok=5K_Omgho"
             alt="A photo of our mate, Tyler Mooney"
             class="w-40 h-40 rounded-full mx-auto mb-6 border-4 border-gray-200 shadow-lg"
-            onerror="this.onerror=null;this.src='https://placehold.co/160x160/a0aec0/ffffff?text=Tyler';"
-          />
-          <h2
-            class="text-4xl md:text-5xl font-bold text-black leading-tight mb-4"
-          >
-            Tyler is fighting cancer. He needs our help.
-          </h2>
+            onerror="this.onerror=null;this.src='https://placehold.co/160x160/a0aec0/ffffff?text=Tyler';"/>
+          <h2 class="text-4xl md:text-5xl font-bold text-black leading-tight mb-4">Tyler is fighting cancer. He needs our help.</h2>
           <p class="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto mb-8">
-            His friends have put this page together to raise money for his
-            medical bills and support him through this. Anything you can give
-            will make a huge difference.
+            His friends have put this page together to raise money for his medical bills and support him through this. Anything you can give will make a huge difference.
           </p>
-          <a
-            href="#donate"
-            class="cta-button inline-block bg-blue-600 text-white font-bold text-xl uppercase px-12 py-4 rounded-md shadow-lg hover:bg-blue-700"
-          >
+          <div class="my-8">
+             <div class="inline-block bg-blue-900 text-white p-4 rounded-lg shadow-xl border-4 border-red-500">
+                <h3 class="text-2xl font-bold uppercase tracking-wider">Pepsi Max Donations</h3>
+                <div class="flex items-center justify-center mt-2">
+                    <img src="https://www.pepsimax.com.au/prod/s3fs-public/styles/product_selector/public/2021-04/pepsimax_0.png?itok=b6ckutoG" 
+                         alt="Pepsi Max bottle" class="w-10 h-10 mr-2" style="height: 2.5rem; width: auto;"/>
+                    <p id="pepsi-counter" class="text-5xl font-bold">0</p>
+                </div>
+            </div>
+          </div>
+          <a href="#donate" class="cta-button donate-btn inline-block bg-blue-600 text-white font-bold text-xl uppercase px-12 py-4 rounded-md shadow-lg hover:bg-blue-700">
             CLICK HERE TO DONATE
           </a>
         </div>
       </section>
 
-      <!-- Main content area -->
       <div class="container mx-auto px-6 py-16">
         <div class="max-w-4xl mx-auto space-y-12">
-          <!-- About Tyler Section -->
           <section id="about" class="content-box p-8 rounded-lg">
-            <h3
-              class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 text-center"
-            >
-              About Our Mate, Tyler
-            </h3>
+            <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 text-center">About Our Mate, Tyler</h3>
             <div class="text-left text-gray-800 leading-relaxed space-y-4">
-              <p>
-                For those of you who know Tyler, you know he's a great guy. He's
-                smart, works hard at his IT job at Ashurst, and is always the
-                first one to help you out if you're stuck on something. He's
-                just a genuine, good bloke.
-              </p>
-              <p>
-                He's the kind of guy who's not just a colleague but a real
-                friend. He loves a good chat over coffee, a walk at lunchtime to
-                find a good feed, and is always up for a games night online.
-                He's just a normal young guy starting his career, and he's one
-                of the best people we know.
-              </p>
+              <p>For those of you who know Tyler, you know he's a great guy. He's smart, works hard at his IT job at Ashurst, and is always the first one to help you out if you're stuck on something. He's just a genuine, good bloke.</p>
+              <p>He's the kind of guy who's not just a colleague but a real friend. He loves a good chat over coffee, a walk at lunchtime to find a good feed, and is always up for a games night online. He's just a normal young guy starting his career, and he's one of the best people we know.</p>
             </div>
           </section>
 
-          <!-- The Challenge Section -->
           <section id="challenge" class="content-box p-8 rounded-lg">
-            <h3
-              class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 text-center"
-            >
-              Tyler's Toughest Fight
-            </h3>
+            <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 text-center">Tyler's Toughest Fight</h3>
             <div class="text-left text-gray-800 leading-relaxed space-y-4">
-              <p>
-                Recently, Tyler got some really bad news: a cancer diagnosis. It
-                came out of nowhere and has been a massive shock. He's facing a
-                huge battle with treatments and everything that comes with it.
-              </p>
-              <p>
-                He's being incredibly brave, but this is tough. The last thing
-                he should be worrying about is money for medical bills or rent
-                while he's sick. That's why we're doing this. We want to take
-                that stress away so he can just focus on getting better.
-              </p>
+              <p>Recently, Tyler got some really bad news: a cancer diagnosis. It came out of nowhere and has been a massive shock. He's facing a huge battle with treatments and everything that comes with it.</p>
+              <p>He's being incredibly brave, but this is tough. The last thing he should be worrying about is money for medical bills or rent while he's sick. That's why we're doing this. We want to take that stress away so he can just focus on getting better.</p>
             </div>
           </section>
 
-          <!-- A Day in the Life Section -->
           <section class="content-box p-8 rounded-lg">
-            <h3
-              class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 text-center"
-            >
-              The Life We're Fighting For
-            </h3>
+            <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6 text-center">The Life We're Fighting For</h3>
             <div class="max-w-2xl mx-auto">
               <ul class="space-y-4">
-                <li
-                  class="p-4 bg-gray-100 rounded-md border-l-4 border-blue-500"
-                >
-                  <p>
-                    <span class="font-bold">7:30 AM:</span> Kicking off the day,
-                    ready to tackle challenges at the office.
-                  </p>
-                </li>
-                <li
-                  class="p-4 bg-gray-100 rounded-md border-l-4 border-blue-500"
-                >
-                  <p>
-                    <span class="font-bold">11:00 AM:</span> In a team meeting,
-                    helping a coworker get un-stuck on a problem.
-                  </p>
-                </li>
-                <li
-                  class="p-4 bg-gray-100 rounded-md border-l-4 border-blue-500"
-                >
-                  <p>
-                    <span class="font-bold">12:30 PM:</span> Out for a walk in
-                    Brisbane with his friends from work.
-                  </p>
-                </li>
-                <li
-                  class="p-4 bg-gray-100 rounded-md border-l-4 border-blue-500"
-                >
-                  <p>
-                    <span class="font-bold">5:40 PM:</span> Heading home to
-                    relax and spend time with family.
-                  </p>
-                </li>
+                <li class="p-4 bg-gray-100 rounded-md border-l-4 border-blue-500"><p><span class="font-bold">7:30 AM:</span> Kicking off the day, ready to tackle challenges at the office.</p></li>
+                <li class="p-4 bg-gray-100 rounded-md border-l-4 border-blue-500"><p><span class="font-bold">11:00 AM:</span> In a team meeting, helping a coworker get un-stuck on a problem.</p></li>
+                <li class="p-4 bg-gray-100 rounded-md border-l-4 border-blue-500"><p><span class="font-bold">12:30 PM:</span> Out for a walk in Brisbane with his friends from work.</p></li>
+                <li class="p-4 bg-gray-100 rounded-md border-l-4 border-blue-500"><p><span class="font-bold">5:40 PM:</span> Heading home to relax and spend time with family.</p></li>
               </ul>
             </div>
           </section>
 
-          <!-- How You Can Help Section -->
           <section id="donate" class="text-center py-12">
-            <h3 class="text-3xl md:text-4xl font-bold text-black">
-              PLEASE DONATE TODAY
-            </h3>
+            <h3 class="text-3xl md:text-4xl font-bold text-black">PLEASE DONATE TODAY</h3>
             <p class="text-lg text-gray-700 max-w-2xl mx-auto my-4">
-              Every single dollar helps. It all goes directly to Tyler's medical
-              and living expenses. Let's show him he's not alone in this fight.
+              Every single dollar helps. It all goes directly to Tyler's medical and living expenses. Let's show him he's not alone in this fight.
             </p>
-            <a
-              href="#"
-              class="cta-button inline-block bg-red-600 text-white font-bold text-2xl uppercase px-16 py-5 rounded-md shadow-lg hover:bg-red-700 my-4"
-            >
+            <a href="#" class="cta-button donate-btn inline-block bg-red-600 text-white font-bold text-2xl uppercase px-16 py-5 rounded-md shadow-lg hover:bg-red-700 my-4">
               DONATE NOW
             </a>
             <div class="mt-8">
-              <p class="text-gray-600">
-                You can also help by sharing this website.
-              </p>
-              <button
-                id="shareButton"
-                class="mt-2 bg-gray-700 text-white font-semibold px-6 py-2 rounded-md hover:bg-gray-800 transition"
-              >
-                Share Tyler's Story
-              </button>
-              <p
-                id="shareMessage"
-                class="text-sm text-green-700 mt-2 opacity-0 transition-opacity duration-300"
-              >
-                Link Copied!
-              </p>
+              <p class="text-gray-600">You can also help by sharing this website.</p>
+              <button id="shareButton" class="mt-2 bg-gray-700 text-white font-semibold px-6 py-2 rounded-md hover:bg-gray-800 transition">Share Tyler's Story</button>
+              <p id="shareMessage" class="text-sm text-green-700 mt-2 opacity-0 transition-opacity duration-300">Link Copied!</p>
             </div>
           </section>
         </div>
       </div>
     </main>
 
-    <!-- Footer -->
     <footer class="bg-gray-800 text-white py-6">
       <div class="container mx-auto px-6 text-center">
-        <p>
-          &copy; 2024 - A message from Tyler's Mates. Thank you for your
-          support.
-        </p>
+        <p>&copy; 2024 - A message from Tyler's Mates. Thank you for your support.</p>
       </div>
     </footer>
+    
+    <div id="flash-overlay"></div>
+    <div id="hitmarker"></div>
+    <div id="toast-container"></div>
+    <div id="mlg-overlay">
+        <div class="mlg-element">WOW</div> <div class="mlg-element">OMG</div> <div class="mlg-element">PWNED!</div>
+        <div class="mlg-element">GET REKT</div> <div class="mlg-element">WOMBO COMBO</div>
+        <div class="mlg-icon"><svg viewBox="0 0 64 32"><path d="M8 12 H2 V18 H8 V12 M56 12 H62 V18 H56 V12 M8 12 L16 16 H48 L56 12 M16 16 L16 24 H24 V16 M48 16 L48 24 H40 V16" fill="black"/></svg></div>
+        <div class="mlg-icon"><svg viewBox="0 0 100 100"><polygon points="50,10 90,90 10,90" fill="#FFC300"/></svg></div>
+        <img class="mlg-gif" src="https://media.tenor.com/v8bS-rL4a2YAAAAi/dat-boi-unicycle.gif" alt="Dat Boi">
+        <img class="mlg-gif" src="https://media1.tenor.com/m/d5_f5JrsSCgAAAAC/illuminati-confirmed.gif" alt="Illuminati">
+    </div>
+    <div id="combo-meter"><span id="combo-count">0</span>x COMBO!</div>
 
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", () => {
         const shareButton = document.getElementById("shareButton");
         const shareMessage = document.getElementById("shareMessage");
-
         shareButton.addEventListener("click", () => {
-          const urlToCopy = window.location.href;
-
-          const textArea = document.createElement("textarea");
-          textArea.value = urlToCopy;
-          document.body.appendChild(textArea);
-          textArea.select();
-          try {
-            document.execCommand("copy");
-            shareMessage.style.opacity = "1";
-
-            setTimeout(() => {
-              shareMessage.style.opacity = "0";
-            }, 2000);
-          } catch (err) {
-            console.error("Failed to copy text: ", err);
-          }
-          document.body.removeChild(textArea);
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                shareMessage.style.opacity = '1';
+                setTimeout(() => { shareMessage.style.opacity = '0'; }, 2000);
+            }).catch(err => console.error("Failed to copy text: ", err));
         });
-      });
+
+        const donateButtons = document.querySelectorAll('.donate-btn');
+        const pepsiCounter = document.getElementById('pepsi-counter');
+        const mlgElements = document.querySelectorAll('#mlg-overlay .mlg-element, #mlg-overlay .mlg-icon, #mlg-overlay .mlg-gif');
+        const comboMeter = document.getElementById('combo-meter');
+        const comboCountEl = document.getElementById('combo-count');
+        const flashOverlay = document.getElementById('flash-overlay');
+        const hitmarker = document.getElementById('hitmarker');
+        const toastContainer = document.getElementById('toast-container');
+        const heroSection = document.getElementById('hero-section');
+        
+        let pepsiCount = 0;
+        let soundReady = false;
+        let audioSynths = {};
+        let combo = 0;
+        let comboTimeout;
+
+        const achievements = [
+            { clicks: 10, name: "Donation Starter", unlocked: false },
+            { clicks: 25, name: "Combo Machine", unlocked: false },
+            { clicks: 50, name: "Clicker Hero", unlocked: false },
+            { clicks: 100, name: "ULTRA COMBO", unlocked: false },
+        ];
+
+        function showAchievement(name) {
+            const toast = document.createElement('div');
+            toast.className = 'achievement-toast';
+            toast.textContent = `🏆 Achievement: ${name}`;
+            toastContainer.appendChild(toast);
+            setTimeout(() => toast.remove(), 3500);
+        }
+
+        async function initializeAudio() {
+            if (soundReady) return;
+            if (typeof Tone === "undefined") {
+                console.error("Tone.js script failed to load. Audio will be disabled.");
+                return;
+            }
+            try {
+                await Tone.start();
+                audioSynths.hit = new Tone.MembraneSynth().toDestination();
+                audioSynths.pluck = new Tone.PluckSynth().toDestination();
+                audioSynths.bass = new Tone.FMSynth({ harmonicity: 1.2, modulationIndex: 15 }).toDestination();
+                soundReady = true;
+                console.log("Audio is ready!");
+            } catch (e) {
+                console.error("Could not start audio context: ", e);
+            }
+        }
+        document.body.addEventListener('click', initializeAudio, { once: true });
+
+
+        function playSoundForCombo() {
+            if (!soundReady) return; 
+            const now = Tone.now();
+            audioSynths.hit.triggerAttackRelease("C2", "8n", now);
+            if (combo % 5 === 0) {
+                audioSynths.pluck.triggerAttack(`C${2 + Math.floor(combo / 5)}`, now + 0.05);
+            }
+            if (combo % 15 === 0) {
+                audioSynths.bass.triggerAttackRelease("G1", "4n", now);
+            }
+        }
+
+        const triggerMontage = (event) => {
+            event.preventDefault();
+            
+            combo++;
+            clearTimeout(comboTimeout);
+            comboTimeout = setTimeout(() => { 
+                combo = 0; 
+                comboMeter.classList.remove('visible', 'milestone');
+                heroSection.classList.remove('dynamic-bg'); 
+            }, 2500); 
+
+            comboCountEl.textContent = combo;
+            comboMeter.classList.add('visible');
+            if (combo > 0 && combo % 10 === 0) comboMeter.classList.add('milestone');
+            else comboMeter.classList.remove('milestone');
+            
+            if (combo >= 20) {
+                heroSection.classList.add('dynamic-bg');
+            }
+
+            document.body.classList.add('screen-shake');
+            setTimeout(() => document.body.classList.remove('screen-shake'), 400);
+
+            if (combo % 5 === 0) {
+                flashOverlay.classList.add('flash');
+                setTimeout(() => flashOverlay.classList.remove('flash'), 300);
+            }
+
+            hitmarker.style.left = `${event.clientX}px`;
+            hitmarker.style.top = `${event.clientY}px`;
+            hitmarker.classList.add('active');
+            setTimeout(() => hitmarker.classList.remove('active'), 200);
+            
+            pepsiCount++;
+            pepsiCounter.textContent = pepsiCount;
+            pepsiCounter.classList.add('counter-pop');
+            setTimeout(() => pepsiCounter.classList.remove('counter-pop'), 300);
+
+            const achievement = achievements.find(a => a.clicks === pepsiCount && !a.unlocked);
+            if (achievement) {
+                achievement.unlocked = true;
+                showAchievement(achievement.name);
+            }
+
+            playSoundForCombo();
+            
+            const elementsToShow = Math.min(Math.floor(combo / 3) + 1, 4);
+            const availableElements = [...mlgElements].filter(el => !el.classList.contains('active'));
+            const shuffled = availableElements.sort(() => 0.5 - Math.random());
+
+            for(let i = 0; i < elementsToShow && i < shuffled.length; i++) {
+                const el = shuffled[i];
+                el.style.setProperty('--x-start', `${Math.random() * 80 + 10}vw`);
+                el.style.setProperty('--y-start', `${Math.random() * 80 + 10}vh`);
+                el.style.setProperty('--x-end', `${Math.random() * 80 + 10}vw`);
+                el.style.setProperty('--y-end', `${Math.random() * 80 + 10}vh`);
+                el.style.setProperty('--random-rotate-end', `${(Math.random() - 0.5) * 720}deg`);
+                if(el.classList.contains('mlg-element')) el.style.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+                
+                el.classList.add('active');
+                setTimeout(() => el.classList.remove('active'), 1200);
+            }
+        };
+
+        donateButtons.forEach(button => {
+            button.addEventListener('click', triggerMontage);
+        });
+    });
     </script>
-  </body>
+</body>
 </html>
